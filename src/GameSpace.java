@@ -81,13 +81,13 @@ public class GameSpace extends JPanel implements ActionListener {
 	
     private void moveCircles(Graphics circles) {
     	
-    	circles.fillOval(me.h_position, me.v_position, me.size, me.size);
+    	circles.fillOval((int) me.h_position, (int) me.v_position, me.size, me.size);
 
     	Iterator<Circle> iter = edibleCircles.iterator();
     	while (iter.hasNext()) {
     		Circle ec = iter.next();
     		circles.setColor(ec.circleColour);
-    		circles.fillOval(ec.h_position, ec.v_position, ec.size, ec.size);
+    		circles.fillOval((int) ec.h_position, (int) ec.v_position, ec.size, ec.size);
     	}
     	
     	Toolkit.getDefaultToolkit().sync();
@@ -99,18 +99,15 @@ public class GameSpace extends JPanel implements ActionListener {
 	private class Circle {
 		int h_velocity;
 		
-		int h_position;
-		int v_position;
+		double h_position;
+		double v_position;
 		
 		int size;
 		
 		Color circleColour;
 		
-		// Convenient names for collision detection
-		int top;
-		int bottom;
-		int left;
-		int right;
+		double h_center;
+		double v_center;
 		
 		private Circle() {
 			
@@ -127,7 +124,7 @@ public class GameSpace extends JPanel implements ActionListener {
 				this.h_velocity *= -1;
 			}
 			this.v_position = (int) (Math.random() * spaceHeight);
-			
+						
 			this.size = ((int) (Math.random() * 10));
 			// Make sure it does not have 0 size
 			while (this.size == 0) {
@@ -135,18 +132,17 @@ public class GameSpace extends JPanel implements ActionListener {
 			}
 			this.size *= edibleMultiplier;
 			
-			this.circleColour = new Color((this.size*25) % 255, (this.v_position*10) % 255, (this.size*10) % 255);
+			this.h_center = this.h_position + (this.size / 2);
+			this.v_center = this.v_position + (this.size / 2);
+
+			this.circleColour = new Color((this.size*25) % 255, ((int) this.v_position*10) % 255, (this.size*10) % 255);
 
 		}
 		
 		private void moveOn() {
 			
 			this.h_position += this.h_velocity;
-			
-			this.top = this.v_position;
-			this.bottom = this.v_position + this.size;
-			this.left = this.h_position;
-			this.right = this.h_position + this.size;
+			this.h_center = this.h_position + (this.size / 2);
 			
 			checkEdge();
 			
@@ -178,6 +174,9 @@ public class GameSpace extends JPanel implements ActionListener {
 			this.h_velocity = 0;
 			this.v_velocity = 0;
 			this.size = startSize;
+			
+			this.h_center = this.h_position + (this.size / 2);
+			this.v_center = this.v_position + (this.size / 2);
 		}
 	
 		private void moveOn() {
@@ -185,10 +184,8 @@ public class GameSpace extends JPanel implements ActionListener {
 			this.h_position += this.h_velocity;
 			this.v_position += this.v_velocity;
 			
-			this.top = this.v_position;
-			this.bottom = this.v_position + this.size;
-			this.left = this.h_position;
-			this.right = this.h_position + this.size;
+			this.h_center = this.h_position + (this.size / 2);
+			this.v_center = this.v_position + (this.size / 2);
 			
 			checkTouch();
 			checkEdge();
@@ -196,12 +193,15 @@ public class GameSpace extends JPanel implements ActionListener {
 		}
 		
 		private void checkTouch() {
-			
+			double v_diff;
+			double h_diff;
+			double sep;
+			// http://stackoverflow.com/questions/8566336/java-circle-circle-collision-detection
 			for (Circle edible : edibleCircles) {
-				if ((((edible.bottom < this.bottom) && (edible.bottom > this.top)) ||
-						((edible.top < this.bottom) && (this.top > edible.top))) &&
-					(((edible.left > this.left) && (edible.left < this.right)) ||
-						((edible.right < this.right) && (this.left < edible.right)))) {
+				v_diff = this.v_center - edible.v_center;
+				h_diff = this.h_center - edible.h_center; 
+				sep = (this.size / 2) + (edible.size / 2);
+				if ((v_diff * v_diff)+(h_diff * h_diff) < (sep * sep)) {
 					if (this.size > edible.size) {
 						eat(edible);
 					} else {
